@@ -1,32 +1,23 @@
 const std = @import("std");
-const lexer = @import("lexer.zig");
+const tools = @import("tools.zig");
 const cwd = std.fs.cwd();
 
 const MEMORY = 8192;
 
-fn is_star(byte: u8) bool {
-    return byte == '*';
-}
-
-fn is_slash(byte: u8) bool {
-    return byte == '/';
-}
-
-fn is_word(bytes: []const u8) usize {
-    var i: usize = 0;
-    while (i < bytes.len and std.ascii.isAlphabetic(bytes[i])) : (i += 1) {}
-    return i;
-}
-
 const Foo = struct {
     comptime whitespace: fn(u8) bool = std.ascii.isWhitespace,
-    comptime plus: u8 = '+',
-    comptime minus: u8 = '-',
-    comptime star: fn(u8) bool = is_star,
-    comptime slash: fn(u8) bool = is_slash,
-    comptime keyword: []const u8 = "key",
-    comptime word: fn([]const u8) usize = is_word,
+    comptime let: []const u8 = "let",
+    comptime equal: u8 = '=',
+    comptime semicolon: u8 = ';',
+    comptime integer: fn(u8) bool = std.ascii.isDigit,
+    comptime identifier: fn(u8) bool = std.ascii.isAlphabetic,
 };
+
+const Token = tools.createToken(Foo);
+
+fn filter(token: Token) bool {
+    return token != Token.whitespace;
+}
 
 pub fn main() !void {
     var buffer: [MEMORY]u8 = undefined;
@@ -35,17 +26,17 @@ pub fn main() !void {
 
     const file = try cwd.openFile("input.nor", .{});
     const input = try file.readToEndAlloc(allocator, MEMORY);
-    const tokens = try lexer.lex(Foo, allocator, input);
+    var tokens = try tools.lex(Foo, allocator, input);
+    tokens = try tools.filter(Token, allocator, tokens, filter);
 
     for (tokens) |token| {
         switch (token) {
             .whitespace => std.debug.print("Token.whitespace\n", .{}),
-            .plus => std.debug.print("Token.plus\n", .{}),
-            .minus => std.debug.print("Token.minus\n", .{}),
-            .star => std.debug.print("Token.star\n", .{}),
-            .slash => std.debug.print("Token.slash\n", .{}),
-            .keyword => std.debug.print("Token.keyword\n", .{}),
-            .word => |word| std.debug.print("Token.word: \"{s}\"\n", .{ word }),
+            .integer => std.debug.print("Token.integer\n", .{}),
+            .identifier => std.debug.print("Token.identifier\n", .{}),
+            .let => std.debug.print("Token.let\n", .{}),
+            .equal => std.debug.print("Token.equal\n", .{}),
+            .semicolon => std.debug.print("Token.semicolon\n", .{}),
         }
     }
 }

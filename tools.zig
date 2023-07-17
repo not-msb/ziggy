@@ -18,6 +18,19 @@ fn getMinSize(comptime len: usize) type {
     };
 }
 
+pub fn filter(comptime T: type, allocator: Allocator, input: []T, cond: fn(T) bool) ![]T {
+    var items = try allocator.alloc(T, 0);
+
+    for (input) |item| {
+        if (cond(item)) {
+            items = try allocator.realloc(items, items.len+1);
+            items[items.len-1] = item;
+        }
+    }
+
+    return items;
+}
+
 fn createEnum(comptime T: type) type {
     const tFields = std.meta.fields(T);
     var fields: [tFields.len]std.builtin.Type.EnumField = undefined;
@@ -105,6 +118,7 @@ pub fn lex(comptime T: type, allocator: Allocator, input: []const u8) ![]createT
             }
         }
 
+        std.debug.print("Unrecognized char: \'{c}\'\n", .{ input[i] });
         unreachable;
     }
 
